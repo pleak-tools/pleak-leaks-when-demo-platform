@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:pleak="http://pleak.io/" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="1.11.3">
+  <bpmn:process id="Process_1" isExecutable="true">
+    <bpmn:dataObjectReference id="DataObjectReference_0kx0ozo" name="Reachable ports" dataObjectRef="DataObject_00sgls5" />
+    <bpmn:dataObject id="DataObject_00sgls5" />
+    <bpmn:dataObjectReference id="DataObjectReference_0ayuy30" name="Ports" dataObjectRef="DataObject_089jhlt">
+      <pleak:sqlScript><![CDATA[CREATE TABLE port (
+  port_id bigserial PRIMARY KEY,
+  name text NOT NULL,
+  latitude DOUBLE PRECISION,
+  longitude DOUBLE PRECISION,
+  offloadcapacity bigint,
+  offloadtime bigint,
+  harbordepth bigint,
+  available boolean
+);]]></pleak:sqlScript>
+    </bpmn:dataObjectReference>
+    <bpmn:dataObject id="DataObject_089jhlt" />
+    <bpmn:dataObjectReference id="DataObjectReference_1vwqei1" name="Ships" dataObjectRef="DataObject_1oj7olh">
+      <pleak:sqlScript><![CDATA[CREATE TABLE ship (
+  ship_id bigserial PRIMARY KEY,
+  name text NOT NULL,
+  cargo bigint,
+  latitude DOUBLE PRECISION,
+  longitude DOUBLE PRECISION,
+  length bigint,
+  draft bigint,
+  maxspeed bigint
+);]]></pleak:sqlScript>
+    </bpmn:dataObjectReference>
+    <bpmn:dataObject id="DataObject_1oj7olh" />
+    <bpmn:endEvent id="EndEvent_12li2yh">
+      <bpmn:incoming>SequenceFlow_0aicla6</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:task id="Task_03lsqm7" name="Compute reachable ports">
+      <bpmn:incoming>SequenceFlow_00cmp77</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_0aicla6</bpmn:outgoing>
+      <bpmn:property id="Property_1gvjm5b" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="DataInputAssociation_1o9fduw">
+        <bpmn:sourceRef>DataObjectReference_0ayuy30</bpmn:sourceRef>
+        <bpmn:targetRef>Property_1gvjm5b</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataInputAssociation id="DataInputAssociation_1i33sll">
+        <bpmn:sourceRef>DataObjectReference_1vwqei1</bpmn:sourceRef>
+        <bpmn:targetRef>Property_1gvjm5b</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataInputAssociation id="DataInputAssociation_0zlv9ng">
+        <bpmn:sourceRef>DataObjectReference_1itqumo</bpmn:sourceRef>
+        <bpmn:targetRef>Property_1gvjm5b</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_04cu0a4">
+        <bpmn:targetRef>DataObjectReference_0kx0ozo</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+      <pleak:sqlScript><![CDATA[create or replace function earliest_arrival(
+  ship_lat DOUBLE PRECISION,
+  ship_long DOUBLE PRECISION,
+  port_lat DOUBLE PRECISION,
+  port_long DOUBLE PRECISION,
+  max_speed BIGINT)
+  returns BIGINT as
+$$
+  select ceil((POINT(ship_lat, ship_long) <@> POINT(port_lat, port_long)) / max_speed)::BIGINT
+$$
+language SQL IMMUTABLE returns NULL on NULL INPUT;
+
+create or replace function compute_reachable_ports(deadline BIGINT, shipname TEXT)
+returns TABLE (port_id BIGINT, arrival BIGINT) as 
+$$
+select port.port_id as port_id, 
+    earliest_arrival(ship.longitude, ship.latitude,
+                     port.longitude, port.latitude, ship.maxspeed) as arrival
+from port, ship
+where earliest_arrival(ship.longitude, ship.latitude,
+    port.longitude, port.latitude, ship.maxspeed) <= deadline
+  and ship.name = shipname
+  and port.port_id = port.port_id;
+$$
+language SQL;
+
+SELECT rports.port_id as port_id, rports.arrival as arrival INTO reachable_ports
+FROM parameters as p cross join lateral compute_reachable_ports(p.deadline, p.shipname) as rports;]]></pleak:sqlScript>
+      <pleak:sensitivityMatrix>{}</pleak:sensitivityMatrix>
+    </bpmn:task>
+    <bpmn:startEvent id="StartEvent_1obsne6">
+      <bpmn:outgoing>SequenceFlow_00cmp77</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="SequenceFlow_0aicla6" sourceRef="Task_03lsqm7" targetRef="EndEvent_12li2yh" />
+    <bpmn:sequenceFlow id="SequenceFlow_00cmp77" sourceRef="StartEvent_1obsne6" targetRef="Task_03lsqm7" />
+    <bpmn:dataObjectReference id="DataObjectReference_1itqumo" name="parameters" dataObjectRef="DataObject_1w16jsr">
+      <pleak:sqlScript><![CDATA[CREATE TABLE parameters (
+  param_id UNIT PRIMARY KEY,
+  deadline INT,
+  shipname TEXT
+);]]></pleak:sqlScript>
+    </bpmn:dataObjectReference>
+    <bpmn:dataObject id="DataObject_1w16jsr" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1">
+      <bpmndi:BPMNShape id="DataObjectReference_0kx0ozo_di" bpmnElement="DataObjectReference_0kx0ozo">
+        <dc:Bounds x="573" y="773" width="36" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="551" y="827" width="81" height="13" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DataObjectReference_0ayuy30_di" bpmnElement="DataObjectReference_0ayuy30">
+        <dc:Bounds x="406" y="773" width="36" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="412" y="827" width="27" height="13" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DataObjectReference_1vwqei1_di" bpmnElement="DataObjectReference_1vwqei1">
+        <dc:Bounds x="406" y="525" width="36" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="410" y="578" width="29" height="13" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_12li2yh_di" bpmnElement="EndEvent_12li2yh">
+        <dc:Bounds x="573" y="648" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="501" y="687" width="90" height="13" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_03lsqm7_di" bpmnElement="Task_03lsqm7">
+        <dc:Bounds x="374" y="626" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="StartEvent_1obsne6_di" bpmnElement="StartEvent_1obsne6">
+        <dc:Bounds x="278" y="648" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="251" y="687" width="0" height="13" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="DataOutputAssociation_04cu0a4_di" bpmnElement="DataOutputAssociation_04cu0a4">
+        <di:waypoint x="467" y="703" />
+        <di:waypoint x="573" y="775" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DataInputAssociation_1o9fduw_di" bpmnElement="DataInputAssociation_1o9fduw">
+        <di:waypoint x="424" y="773" />
+        <di:waypoint x="424" y="706" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DataInputAssociation_1i33sll_di" bpmnElement="DataInputAssociation_1i33sll">
+        <di:waypoint x="424" y="575" />
+        <di:waypoint x="424" y="626" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_0aicla6_di" bpmnElement="SequenceFlow_0aicla6">
+        <di:waypoint x="474" y="666" />
+        <di:waypoint x="573" y="666" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="478.5" y="644.5" width="90" height="13" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_00cmp77_di" bpmnElement="SequenceFlow_00cmp77">
+        <di:waypoint x="314" y="666" />
+        <di:waypoint x="374" y="666" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="299" y="645" width="0" height="13" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="DataObjectReference_1itqumo_di" bpmnElement="DataObjectReference_1itqumo">
+        <dc:Bounds x="278" y="525" width="36" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="268" y="578" width="57" height="13" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="DataInputAssociation_0zlv9ng_di" bpmnElement="DataInputAssociation_0zlv9ng">
+        <di:waypoint x="314" y="568" />
+        <di:waypoint x="378" y="632" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

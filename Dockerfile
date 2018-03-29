@@ -1,16 +1,5 @@
 FROM debian:stretch
 
-# # SQL Analyzer
-# RUN apt-get update
-# RUN apt-get install -y sudo wget curl git z3 nano vim
-# RUN wget -qO- https://get.haskellstack.org/ | sh
-# COPY pleak-sql-analysis /usr/pleak/pleak-sql-analysis
-# WORKDIR /usr/pleak/pleak-sql-analysis
-# RUN git submodule init
-# RUN git submodule update
-# RUN stack setup
-# RUN stack build
-
 ## =================================================== 
 ##     MySQL
 ## =================================================== 
@@ -55,7 +44,7 @@ RUN set -ex; \
 	apt-key list > /dev/null
 
 ENV MYSQL_MAJOR 5.7
-ENV MYSQL_VERSION 5.7.19-1debian8
+ENV MYSQL_VERSION 5.7.21-1debian8
 
 RUN echo "deb http://repo.mysql.com/apt/debian/ jessie mysql-${MYSQL_MAJOR}" > /etc/apt/sources.list.d/mysql.list
 
@@ -75,25 +64,27 @@ RUN { \
 
 # comment out a few problematic configuration values
 # don't reverse lookup hostnames, they are usually another container
-RUN sed -Ei 's/^(bind-address|log)/#&/' /etc/mysql/mysql.conf.d/mysqld.cnf \
-	&& echo '[mysqld]\nskip-host-cache\nskip-name-resolve' > /etc/mysql/conf.d/docker.cnf
+RUN sed -Ei 's/^(log)/#&/' /etc/mysql/mysql.conf.d/mysqld.cnf \
+    && echo '[mysqld]\nskip-host-cache' > /etc/mysql/conf.d/docker.cnf
 
 VOLUME /var/lib/mysql
+
+RUN apt-get update
+RUN apt-get install -y wget curl vim
 
 RUN apt-get update
 RUN apt-get install -y maven
 RUN curl -sL https://deb.nodesource.com/setup_6.x | bash -
 RUN apt-get install -y nodejs build-essential
 
-COPY scripts /usr/pleak/scripts
+COPY pleak-pe-bpmn-editor /usr/pleak/pleak-pe-bpmn-editor
+WORKDIR /usr/pleak/pleak-pe-bpmn-editor
+RUN npm install
+RUN npm run build
+
 COPY pleak-backend /usr/pleak/pleak-backend
 WORKDIR /usr/pleak/pleak-backend
 RUN mvn dependency:go-offline
-
-COPY pleak-pe-bpmn-editor /usr/pleak/pleak-pe-bpmn-editor
-# WORKDIR /usr/pleak/pleak-pe-bpmn-editor
-# RUN npm install
-# RUN npm run build
 
 COPY pleak-sql-editor /usr/pleak/pleak-sql-editor
 WORKDIR /usr/pleak/pleak-sql-editor
@@ -105,13 +96,14 @@ WORKDIR /usr/pleak/pleak-frontend
 RUN npm install
 RUN npm run build
 
-# WORKDIR /usr/pleak/pleak-sql-analysis
-# RUN find -path './*/install/*'  -name sqla -exec ln -s {} \;
-
 RUN apt-get install -y default-jdk
 
 VOLUME /usr/pleak/pleak-backend/src/main/webapp/files
 
-COPY scripts/launch.sh /usr/pleak/scripts/launch.sh
+# COPY scripts/launch.sh /usr/pleak/scripts/launch.sh
+# COPY config.json pleak-frontend/src
 
-CMD sh /usr/pleak/scripts/launch.sh
+COPY scripts /usr/pleak/scripts
+COPY examples /usr/pleak/examples
+COPY examples/11 /usr/pleak/pleak-backend/src/main/webapp/files
+CMD sh /usr/pleak/scripts/db-setup.sh; sh /usr/pleak/scripts/launch.sh
