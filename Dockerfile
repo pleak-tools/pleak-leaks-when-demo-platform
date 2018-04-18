@@ -72,10 +72,34 @@ VOLUME /var/lib/mysql
 RUN apt-get update
 RUN apt-get install -y wget curl vim
 
+RUN apt-get install haskell-platform
+
 RUN apt-get update
 RUN apt-get install -y maven
 RUN curl -sL https://deb.nodesource.com/setup_6.x | bash -
 RUN apt-get install -y nodejs build-essential
+
+COPY pleak-sql-editor /usr/pleak/pleak-sql-analysis
+WORKDIR /usr/pleak/pleak-sql-analysis
+
+wget -qO- https://get.haskellstack.org/ | sh
+apt install z3
+
+git submodule init
+git submodule update
+stack setup
+stack build
+
+ln -s .stack-work/install/x86_64-linux/lts-7.19/8.0.1/bin/sqla .
+
+RUN npm install
+RUN npm run build
+
+WORKDIR /usr/pleak/pleak-sql-analysis/banach
+cabal sandbox init
+cabal install --only-dependencies
+cabal configure
+cabal build
 
 COPY pleak-pe-bpmn-editor /usr/pleak/pleak-pe-bpmn-editor
 WORKDIR /usr/pleak/pleak-pe-bpmn-editor
@@ -96,14 +120,19 @@ WORKDIR /usr/pleak/pleak-frontend
 RUN npm install
 RUN npm run build
 
+COPY pleak-sql-derivative-sensitivity-editor /usr/pleak/pleak-sql-derivative-sensitivity-editor
+WORKDIR /usr/pleak/pleak-sql-derivative-sensitivity-editor
+RUN npm install
+RUN npm run build
+
 RUN apt-get install -y default-jdk
 
-VOLUME /usr/pleak/pleak-backend/src/main/webapp/files
+# VOLUME /usr/pleak/pleak-backend/src/main/webapp/files
 
 # COPY scripts/launch.sh /usr/pleak/scripts/launch.sh
 # COPY config.json pleak-frontend/src
 
 COPY scripts /usr/pleak/scripts
-COPY examples /usr/pleak/examples
-COPY examples/11 /usr/pleak/pleak-backend/src/main/webapp/files
+# COPY examples /usr/pleak/examples
+# COPY examples/11 /usr/pleak/pleak-backend/src/main/webapp/files
 CMD sh /usr/pleak/scripts/db-setup.sh; sh /usr/pleak/scripts/launch.sh
