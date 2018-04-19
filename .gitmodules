@@ -1,6 +1,6 @@
 [submodule "pleak-sql-analysis"]
 	path = pleak-sql-analysis
-	url = https://github.com/pleak-tools/pleak-sql-analysis
+	url = https://github.com/pleak-tools/pleak-sql-analysis.git
 [submodule "pleak-backend"]
 	path = pleak-backend
 	url = https://github.com/pleak-tools/pleak-backend
@@ -8,12 +8,13 @@
 	path = pleak-sql-editor
 	url = https://github.com/pleak-tools/pleak-sql-editor
 	branch = develop
-[submodule "pleak-frontend"]
-	path = pleak-frontend
-	url = https://github.com/pleak-tools/pleak-frontend
 [submodule "pleak-pe-bpmn-editor"]
 	path = pleak-pe-bpmn-editor
 	url = https://github.com/pleak-tools/pleak-pe-bpmn-editor
 [submodule "pleak-sql-derivative-sensitivity-editor"]
 	path = pleak-sql-derivative-sensitivity-editor
-	url = https://github.com/pleak-tools/pleak-sql-derivative-sensitivity-editor
+	url = https://github.com/pleak-tools/pleak-sql-derivative-sensitivity-editor.git
+[submodule "pleak-frontend"]
+	path = pleak-frontend
+	url = https://github.com/pleak-tools/pleak-frontend.git
+	branch = fix-import
