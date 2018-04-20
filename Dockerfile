@@ -79,55 +79,13 @@ RUN curl -sL https://deb.nodesource.com/setup_6.x | bash -
 RUN apt-get install -y nodejs build-essential
 RUN wget -qO- https://get.haskellstack.org/ | sh
 RUN apt install z3
-RUN z3 -h
 
 WORKDIR /usr/pleak
 RUN git clone --recurse-submodules https://github.com/pleak-tools/pleak-sql-analysis.git
-#RUN git clone https://github.com/pleak-tools/pleak-sql-analysis.git
 WORKDIR /usr/pleak/pleak-sql-analysis
-#RUN git submodule update --init --recursive
 RUN stack setup
 RUN stack build
-RUN ln -s .stack-work/install/x86_64-linux/lts-7.19/8.0.1/bin/sqla .
-WORKDIR /usr/pleak/pleak-sql-analysis/.stack-work/install/x86_64-linux/lts-7.19/8.0.1/bin
-RUN ls -l
-RUN ./sqla -h
-
-
-WORKDIR /usr/pleak/pleak-sql-analysis/banach
-RUN apt-get -y install aptitude
-RUN aptitude install -y libgmp3-dev
-
-#RUN wget https://www.haskell.org/ghc/dist/7.8.4/ghc-7.8.4-x86_64-unknown-linux-deb7.tar.xz
-#RUN tar xvf ghc-7.8.4-x86_64-unknown-linux-deb7.tar.xz
-#RUN cd ghc-7.8.4
-#RUN ./configure --prefix=/opt/ghc
-#RUN make install
-
-RUN apt-get install -y software-properties-common
-RUN add-apt-repository ppa:hvr/ghc
-RUN sudo apt-get update
-RUN ls -l
-RUN apt-get install -y --allow-unauthenticated ghc-8.0.2
-RUN cd /opt/ghc/bin
-RUN ghc --help
-
-RUN wget http://www.haskell.org/cabal/release/cabal-1.18.1.3/Cabal-1.18.1.3.tar.gz
-RUN tar xvf Cabal-1.18.1.3.tar.gz
-RUN cd Cabal-1.18.1.3
-
-RUN ghc --make Setup
-RUN ./Setup configure
-RUN ./Setup build
-RUN sudo ./Setup install
-
-#RUN ./bootstrap.sh --user
-RUN cabal update && cabal install cabal-install
-
-RUN cabal sandbox init
-RUN cabal install --only-dependencies
-RUN cabal configure
-RUN cabal build
+RUN ln -s .stack-work/install/x86_64-linux-nopie/lts-7.19/8.0.1/bin/sqla .
 
 COPY pleak-pe-bpmn-editor /usr/pleak/pleak-pe-bpmn-editor
 WORKDIR /usr/pleak/pleak-pe-bpmn-editor
@@ -155,15 +113,26 @@ RUN npm run build
 
 RUN apt-get install -y default-jdk
 
-# COPY pleak-leaks-when-analysis /usr/pleak/pleak-leaks-when-analysis
-# COPY scripts/launch.sh /usr/pleak/scripts/launch.sh
-
 COPY scripts /usr/pleak/scripts
 COPY examples /usr/pleak/examples
 COPY examples/11 /usr/pleak/pleak-backend/src/main/webapp/files
 RUN chmod 777 /usr/pleak/scripts/*.sh
+
+RUN apt-get -y install aptitude
+RUN aptitude install -y libgmp3-dev
+RUN apt-get install -y software-properties-common sudo
+RUN sudo add-apt-repository ppa:hvr/ghc
+RUN sudo apt-get update
+RUN apt-get install -y --allow-unauthenticated ghc-8.0.2
+RUN apt-get install -y --allow-unauthenticated cabal-install-2.2
+
+ENV PATH "$PATH:/opt/cabal/bin:/opt/ghc/bin"
+#RUN cabal update && cabal install cabal-install
+
+#WORKDIR /usr/pleak/pleak-sql-analysis/banach
+#RUN cabal sandbox init
+#RUN cabal install --only-dependencies
+#RUN cabal configure
+#RUN cabal build
+
 CMD sh /usr/pleak/scripts/db-setup.sh; sh /usr/pleak/scripts/launch.sh
-
-
-
-
