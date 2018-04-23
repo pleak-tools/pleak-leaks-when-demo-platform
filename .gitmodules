@@ -17,4 +17,4 @@
 [submodule "pleak-frontend"]
 	path = pleak-frontend
 	url = https://github.com/pleak-tools/pleak-frontend.git
-	branch = fix-import
+	branch = develop
