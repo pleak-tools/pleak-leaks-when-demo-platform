@@ -105,7 +105,7 @@ RUN git submodule init
 RUN git submodule update
 RUN stack setup
 RUN stack build
-RUN ln -s .stack-work/install/x86_64-linux-nopie/lts-7.19/8.0.1/bin/sqla .
+RUN ln -s .stack-work/install/x86_64-linux/lts-7.19/8.0.1/bin/sqla .
 
 RUN echo 'deb http://ftp.debian.org/debian/ jessie-backports main' | tee /etc/apt/sources.list.d/backports.list sudo
 RUN apt-get update && apt-get -y -t jessie-backports install ghc cabal-install sudo
@@ -147,8 +147,6 @@ RUN echo "deb http://http.debian.net/debian jessie-backports main" | \
 RUN sudo apt-get update
 RUN sudo apt-get -y install -t jessie-backports openjdk-8-jdk
 RUN sudo update-java-alternatives -s java-1.8.0-openjdk-amd64
-
-RUN java -version
 
 COPY scripts /usr/pleak/scripts
 COPY examples /usr/pleak/examples
