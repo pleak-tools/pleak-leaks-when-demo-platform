@@ -79,14 +79,24 @@ RUN curl -sL https://deb.nodesource.com/setup_6.x | bash -
 RUN apt-get install -y nodejs build-essential
 RUN wget -qO- https://get.haskellstack.org/ | sh
 
-RUN echo 'deb http://ftp.debian.org/debian jessie main non-free contrib' >> /etc/apt/sources.list
-RUN echo 'deb-src http://ftp.debian.org/debian jessie main non-free contrib' >> /etc/apt/sources.list
-RUN echo 'deb http://ftp.debian.org/debian jessie-updates main contrib non-free' >> /etc/apt/sources.list
-RUN echo 'deb-src http://ftp.debian.org/debian jessie-updates main contrib non-free' >> /etc/apt/sources.list
+RUN > /etc/apt/sources.list
+RUN echo 'deb http://ftp.ee.debian.org/debian/ jessie main' >> /etc/apt/sources.list
+RUN echo 'deb http://ftp.ee.debian.org/debian/ jessie-updates main' >> /etc/apt/sources.list
+RUN echo 'deb http://ftp.ee.debian.org/debian/ jessie-backports main' >> /etc/apt/sources.list
+RUN echo 'deb http://security.debian.org/ jessie/updates main' >> /etc/apt/sources.list
+RUN echo 'deb [arch=amd64] https://download.docker.com/linux/debian jessie stable' >> /etc/apt/sources.list
 
-RUN cat /etc/apt/sources.list
 RUN apt-get update
-RUN apt-get install z3
+
+WORKDIR /usr/pleak
+RUN git clone https://github.com/Z3Prover/z3.git
+WORKDIR /usr/pleak/z3
+RUN python scripts/mk_make.py
+WORKDIR /usr/pleak/z3/build
+RUN make
+RUN make install
+
+ENV PATH "$PATH:/home/pleak/.local/bin/z3/bin"
 
 WORKDIR /usr/pleak
 RUN git clone --recurse-submodules https://github.com/pleak-tools/pleak-sql-analysis.git
@@ -96,6 +106,16 @@ RUN git submodule update
 RUN stack setup
 RUN stack build
 RUN ln -s .stack-work/install/x86_64-linux-nopie/lts-7.19/8.0.1/bin/sqla .
+
+RUN echo 'deb http://ftp.debian.org/debian/ jessie-backports main' | tee /etc/apt/sources.list.d/backports.list sudo
+RUN apt-get update && apt-get -y -t jessie-backports install ghc cabal-install sudo
+RUN cabal update && echo export PATH='$HOME/.cabal/bin:$PATH' >> $HOME/.bashrc
+
+WORKDIR /usr/pleak/pleak-sql-analysis/banach
+RUN cabal sandbox init
+RUN sudo cabal install --only-dependencies
+RUN cabal configure
+RUN cabal build
 
 COPY pleak-pe-bpmn-editor /usr/pleak/pleak-pe-bpmn-editor
 WORKDIR /usr/pleak/pleak-pe-bpmn-editor
@@ -121,40 +141,18 @@ WORKDIR /usr/pleak/pleak-sql-derivative-sensitivity-editor
 RUN npm install
 RUN npm run build
 
-RUN apt-get install -y default-jdk
+RUN echo "deb http://http.debian.net/debian jessie-backports main" | \
+      sudo tee --append /etc/apt/sources.list.d/jessie-backports.list > /dev/null
+
+RUN sudo apt-get update
+RUN sudo apt-get -y install -t jessie-backports openjdk-8-jdk
+RUN sudo update-java-alternatives -s java-1.8.0-openjdk-amd64
+
+RUN java -version
 
 COPY scripts /usr/pleak/scripts
 COPY examples /usr/pleak/examples
 COPY examples/11 /usr/pleak/pleak-backend/src/main/webapp/files
 RUN chmod 777 /usr/pleak/scripts/*.sh
-
-#RUN apt-get -y install aptitude
-#RUN aptitude install -y libgmp3-dev
-#RUN apt-get install -y software-properties-common sudo
-#RUN sudo add-apt-repository ppa:hvr/ghc
-#RUN sudo apt-get update
-#RUN apt-get install -y --allow-unauthenticated ghc-8.0.2
-#RUN apt-get install libgmp-dev
-#RUN apt-get install -y --allow-unauthenticated cabal-install-1.22.6.0
-
-RUN echo 'deb http://ftp.debian.org/debian/ jessie-backports main' | tee /etc/apt/sources.list.d/backports.list sudo
-RUN apt-get update && apt-get -y -t jessie-backports install ghc cabal-install sudo
-RUN cabal update && echo export PATH='$HOME/.cabal/bin:$PATH' >> $HOME/.bashrc
-#ENV PATH "$PATH:/opt/cabal/bin:/opt/ghc/bin"
-
-WORKDIR /usr/pleak/pleak-sql-analysis/banach
-RUN cabal sandbox init
-#RUN ghc -V
-#RUN cabal update
-#RUN stack --version
-#RUN cabal install base
-#RUN cabal install megaparsec
-#RUN cabal install containers
-#RUN cabal install optparse-applicative
-#RUN cabal install semigroups
-
-RUN sudo cabal install --only-dependencies
-RUN cabal configure
-RUN cabal build
 
 CMD sh /usr/pleak/scripts/db-setup.sh; sh /usr/pleak/scripts/launch.sh
