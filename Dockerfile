@@ -44,7 +44,7 @@ RUN set -ex; \
 	apt-key list > /dev/null
 
 ENV MYSQL_MAJOR 5.7
-ENV MYSQL_VERSION 5.7.22-1debian8
+ENV MYSQL_VERSION 5.7.23-1debian8
 
 RUN echo "deb http://repo.mysql.com/apt/debian/ jessie mysql-${MYSQL_MAJOR}" > /etc/apt/sources.list.d/mysql.list
 
@@ -103,6 +103,13 @@ RUN git clone --recurse-submodules https://github.com/pleak-tools/pleak-sql-anal
 WORKDIR /usr/pleak/pleak-sql-analysis
 RUN git submodule init
 RUN git submodule update
+
+
+RUN echo 'deb http://ftp.debian.org/debian/ jessie-backports main' | tee /etc/apt/sources.list.d/backports.list sudo
+RUN apt-get update && apt-get -y -t jessie-backports install ghc cabal-install sudo
+RUN apt-get install -y netbase
+
+
 RUN stack setup
 RUN stack build
 RUN ln -s .stack-work/install/x86_64-linux/lts-7.19/8.0.1/bin/sqla .
@@ -113,7 +120,10 @@ RUN cabal update && echo export PATH='$HOME/.cabal/bin:$PATH' >> $HOME/.bashrc
 
 WORKDIR /usr/pleak/pleak-sql-analysis/banach
 RUN cabal sandbox init
-RUN sudo cabal install --only-dependencies
+RUN cabal install mtl-2.2.2
+RUN cabal install happy
+RUN apt-get install -y libpq-dev
+RUN sudo cabal install
 RUN cabal configure
 RUN cabal build
 
@@ -151,6 +161,7 @@ RUN sudo update-java-alternatives -s java-1.8.0-openjdk-amd64
 COPY scripts /usr/pleak/scripts
 COPY examples /usr/pleak/examples
 COPY examples/11 /usr/pleak/pleak-backend/src/main/webapp/files
+COPY examples/32 /usr/pleak/pleak-backend/src/main/webapp/files
 RUN chmod 777 /usr/pleak/scripts/*.sh
 
 CMD sh /usr/pleak/scripts/db-setup.sh; sh /usr/pleak/scripts/launch.sh

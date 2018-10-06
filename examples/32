@@ -1,0 +1,790 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn2:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmn2="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:pleak="http://pleak.io/" id="sample-diagram" targetNamespace="http://bpmn.io/schema/bpmn" xsi:schemaLocation="http://www.omg.org/spec/BPMN/20100524/MODEL BPMN20.xsd">
+  <bpmn2:collaboration id="Collaboration_0qqzggy">
+    <bpmn2:participant id="Participant_19d4icu" name="1. Aid requesting country" processRef="Process_1" />
+    <bpmn2:participant id="Participant_03okyyb" name="2. Aid providing country" processRef="Process_0t44xfp" />
+    <bpmn2:messageFlow id="MessageFlow_1vojdz8" sourceRef="Task_1cqv0zi" targetRef="StartEvent_1nz8veb" />
+    <bpmn2:messageFlow id="MessageFlow_058ex6z" sourceRef="Task_0z1iwot" targetRef="Task_0n19n3h" />
+    <bpmn2:messageFlow id="MessageFlow_0naywlm" sourceRef="Task_04l6yvj" targetRef="Task_17b0eq4" />
+    <bpmn2:messageFlow id="MessageFlow_1epfgtg" sourceRef="Task_1uaab48" targetRef="Task_1ajk1j1" />
+  </bpmn2:collaboration>
+  <bpmn2:process id="Process_1" isExecutable="false">
+    <bpmn2:sequenceFlow id="SequenceFlow_0wuidku" sourceRef="StartEvent_1" targetRef="Task_1cqv0zi" />
+    <bpmn2:sequenceFlow id="SequenceFlow_1qdk7qz" sourceRef="Task_1cqv0zi" targetRef="Task_0n19n3h" />
+    <bpmn2:sequenceFlow id="SequenceFlow_0q1pxgf" sourceRef="Task_0n19n3h" targetRef="Task_10vdp3f" />
+    <bpmn2:sequenceFlow id="SequenceFlow_1b78r1t" sourceRef="Task_10vdp3f" targetRef="Task_04l6yvj" />
+    <bpmn2:sequenceFlow id="SequenceFlow_0bxw88s" sourceRef="Task_04l6yvj" targetRef="Task_1ajk1j1" />
+    <bpmn2:dataObjectReference id="DataObjectReference_1xtsr01" name="Reachable ports 1" dataObjectRef="DataObject_008roj5">
+      <pleak:sqlScript></pleak:sqlScript>
+    </bpmn2:dataObjectReference>
+    <bpmn2:dataObject id="DataObject_008roj5" isCollection="true" />
+    <bpmn2:dataObjectReference id="DataObjectReference_0ofqhjv" name="Feasible ports 1" dataObjectRef="DataObject_1kbah7k">
+      <pleak:sqlScript></pleak:sqlScript>
+    </bpmn2:dataObjectReference>
+    <bpmn2:dataObject id="DataObject_1kbah7k" isCollection="true" />
+    <bpmn2:sendTask id="Task_04l6yvj" name="Send list of feasible ports">
+      <bpmn2:incoming>SequenceFlow_1b78r1t</bpmn2:incoming>
+      <bpmn2:outgoing>SequenceFlow_0bxw88s</bpmn2:outgoing>
+      <bpmn2:property id="Property_0cjqkw4" name="__targetRef_placeholder" />
+      <bpmn2:dataInputAssociation id="DataInputAssociation_07n8kk5">
+        <bpmn2:sourceRef>DataObjectReference_0ofqhjv</bpmn2:sourceRef>
+        <bpmn2:targetRef>Property_0cjqkw4</bpmn2:targetRef>
+      </bpmn2:dataInputAssociation>
+    </bpmn2:sendTask>
+    <bpmn2:task id="Task_10vdp3f" name="Identify ports capable of handle ship">
+      <bpmn2:incoming>SequenceFlow_0q1pxgf</bpmn2:incoming>
+      <bpmn2:outgoing>SequenceFlow_1b78r1t</bpmn2:outgoing>
+      <bpmn2:property id="Property_0jpr1z4" name="__targetRef_placeholder" />
+      <bpmn2:dataInputAssociation id="DataInputAssociation_1et8n74">
+        <bpmn2:sourceRef>DataObjectReference_1xtsr01</bpmn2:sourceRef>
+        <bpmn2:targetRef>Property_0jpr1z4</bpmn2:targetRef>
+      </bpmn2:dataInputAssociation>
+      <bpmn2:dataInputAssociation id="DataInputAssociation_05z2at7">
+        <bpmn2:sourceRef>DataObjectReference_00l4uvv</bpmn2:sourceRef>
+        <bpmn2:targetRef>Property_0jpr1z4</bpmn2:targetRef>
+      </bpmn2:dataInputAssociation>
+      <bpmn2:dataOutputAssociation id="DataOutputAssociation_1x6xlzz">
+        <bpmn2:targetRef>DataObjectReference_0ofqhjv</bpmn2:targetRef>
+      </bpmn2:dataOutputAssociation>
+      <pleak:sqlScript>create or replace function compute_feasible_ports()
+    returns TABLE (port_id BIGINT) as
+  $$
+    select rp1.port_id as port_id,
+      p1.harbordepth as harbordepth,
+      p1.offloadcapacity as offloadcapacity
+    from reachable_ports_1 as rp1, ship_requirements_1 as sr1, port_1 as p1
+    where p1.port_id = sr1.port_id 
+      and p1.port_id = rp1.port_id
+      and rp1.port_id = sr1.port_id
+      and p1.available 
+      and p1.harbordepth &gt;= sr1.draft 
+      and p1.offloadcapacity &gt;= sr1.cargo;
+  $$
+  language SQL;
+
+  select fports.port_id as port_id, 
+    fports.harbordepth as harbordepth, 
+    fports.offloadcapacity as offloadcapacity 
+  into feasible_ports_1 
+  from compute_feasible_ports() as fports;</pleak:sqlScript>
+    </bpmn2:task>
+    <bpmn2:dataObjectReference id="DataObjectReference_00l4uvv" name="Ship requirements 1" dataObjectRef="DataObject_0z3wc05">
+      <pleak:sqlScript></pleak:sqlScript>
+    </bpmn2:dataObjectReference>
+    <bpmn2:dataObject id="DataObject_0z3wc05" isCollection="true" />
+    <bpmn2:receiveTask id="Task_0n19n3h" name="Receive list of reachable ports and ship requirements">
+      <bpmn2:incoming>SequenceFlow_1qdk7qz</bpmn2:incoming>
+      <bpmn2:outgoing>SequenceFlow_0q1pxgf</bpmn2:outgoing>
+      <bpmn2:dataOutputAssociation id="DataOutputAssociation_0buzut2">
+        <bpmn2:targetRef>DataObjectReference_1xtsr01</bpmn2:targetRef>
+      </bpmn2:dataOutputAssociation>
+      <bpmn2:dataOutputAssociation id="DataOutputAssociation_14lj43s">
+        <bpmn2:targetRef>DataObjectReference_00l4uvv</bpmn2:targetRef>
+      </bpmn2:dataOutputAssociation>
+      <pleak:sqlScript>SELECT sr1.port_id as port_id, 
+  sr1.cargo as cargo, 
+  sr1.draft as draft 
+  INTO ship_requirements_1 
+  FROM ship_requirements_2 as sr1;
+  
+SELECT rports.port_id as port_id, 
+  rports.arrival as arrival 
+  INTO reachable_ports_1 
+  FROM reachable_ports_2 as rports;</pleak:sqlScript>
+    </bpmn2:receiveTask>
+    <bpmn2:sendTask id="Task_1cqv0zi" name="Request for aid to candidate providing country">
+      <bpmn2:incoming>SequenceFlow_0wuidku</bpmn2:incoming>
+      <bpmn2:outgoing>SequenceFlow_1qdk7qz</bpmn2:outgoing>
+      <bpmn2:property id="Property_0bcbbjk" name="__targetRef_placeholder" />
+      <bpmn2:dataInputAssociation id="DataInputAssociation_1baw5d8">
+        <bpmn2:sourceRef>DataObjectReference_19fjx6x</bpmn2:sourceRef>
+        <bpmn2:targetRef>Property_0bcbbjk</bpmn2:targetRef>
+      </bpmn2:dataInputAssociation>
+      <bpmn2:dataInputAssociation id="DataInputAssociation_1j61e6a">
+        <bpmn2:sourceRef>DataObjectReference_0d4rahq</bpmn2:sourceRef>
+        <bpmn2:targetRef>Property_0bcbbjk</bpmn2:targetRef>
+      </bpmn2:dataInputAssociation>
+      <pleak:sqlScript></pleak:sqlScript>
+    </bpmn2:sendTask>
+    <bpmn2:dataObjectReference id="DataObjectReference_0d4rahq" name="parameters" dataObjectRef="DataObject_1wl3sd1">
+      <pleak:sqlScript>CREATE TABLE parameters (
+  param_id UNIT PRIMARY KEY,
+  deadline INT,
+  shipname TEXT
+);</pleak:sqlScript>
+    </bpmn2:dataObjectReference>
+    <bpmn2:dataObject id="DataObject_1wl3sd1" />
+    <bpmn2:dataObjectReference id="DataObjectReference_19fjx6x" name="Ports 1" dataObjectRef="DataObject_0wgx5mv">
+      <pleak:sqlScript>CREATE TABLE port_1 (
+  port_id bigserial PRIMARY KEY,
+  name text NOT NULL,
+  latitude DOUBLE PRECISION,
+  longitude DOUBLE PRECISION,
+  offloadcapacity bigint,
+  offloadtime bigint,
+  harbordepth bigint,
+  available boolean
+);</pleak:sqlScript>
+    </bpmn2:dataObjectReference>
+    <bpmn2:dataObject id="DataObject_0wgx5mv" isCollection="true" />
+    <bpmn2:startEvent id="StartEvent_1" name="Aid is needed">
+      <bpmn2:outgoing>SequenceFlow_0wuidku</bpmn2:outgoing>
+      <bpmn2:dataOutputAssociation id="DataOutputAssociation_1w814p8">
+        <bpmn2:targetRef>DataObjectReference_0d4rahq</bpmn2:targetRef>
+      </bpmn2:dataOutputAssociation>
+      <bpmn2:messageEventDefinition />
+    </bpmn2:startEvent>
+    <bpmn2:sequenceFlow id="SequenceFlow_0kbcc52" sourceRef="Task_1ajk1j1" targetRef="Task_0jxwusb" />
+    <bpmn2:sequenceFlow id="SequenceFlow_06e5sff" sourceRef="Task_0jxwusb" targetRef="EndEvent_15f4rr6" />
+    <bpmn2:receiveTask id="Task_1ajk1j1" name="Receive ship information">
+      <bpmn2:incoming>SequenceFlow_0bxw88s</bpmn2:incoming>
+      <bpmn2:outgoing>SequenceFlow_0kbcc52</bpmn2:outgoing>
+      <bpmn2:dataOutputAssociation id="DataOutputAssociation_07uzt1g">
+        <bpmn2:targetRef>DataObjectReference_1jzddia</bpmn2:targetRef>
+      </bpmn2:dataOutputAssociation>
+      <pleak:sqlScript>SELECT si2.ship_id as ship_id,
+si2.length as length
+INTO ship_information_1 
+FROM ship_information_2 as si2;</pleak:sqlScript>
+    </bpmn2:receiveTask>
+    <bpmn2:endEvent id="EndEvent_15f4rr6">
+      <bpmn2:incoming>SequenceFlow_06e5sff</bpmn2:incoming>
+    </bpmn2:endEvent>
+    <bpmn2:task id="Task_0jxwusb" name="Schedule ship arrival to port">
+      <bpmn2:incoming>SequenceFlow_0kbcc52</bpmn2:incoming>
+      <bpmn2:outgoing>SequenceFlow_06e5sff</bpmn2:outgoing>
+      <bpmn2:property id="Property_1bbzrfu" name="__targetRef_placeholder" />
+      <bpmn2:dataInputAssociation id="DataInputAssociation_1nag4de">
+        <bpmn2:sourceRef>DataObjectReference_1hlif92</bpmn2:sourceRef>
+        <bpmn2:targetRef>Property_1bbzrfu</bpmn2:targetRef>
+      </bpmn2:dataInputAssociation>
+      <bpmn2:dataInputAssociation id="DataInputAssociation_1kk6p9s">
+        <bpmn2:sourceRef>DataObjectReference_026il2y</bpmn2:sourceRef>
+        <bpmn2:targetRef>Property_1bbzrfu</bpmn2:targetRef>
+      </bpmn2:dataInputAssociation>
+      <bpmn2:dataInputAssociation id="DataInputAssociation_0x06422">
+        <bpmn2:sourceRef>DataObjectReference_1jzddia</bpmn2:sourceRef>
+        <bpmn2:targetRef>Property_1bbzrfu</bpmn2:targetRef>
+      </bpmn2:dataInputAssociation>
+      <bpmn2:dataOutputAssociation id="DataOutputAssociation_1974r4q">
+        <bpmn2:targetRef>DataObjectReference_0cexmhj</bpmn2:targetRef>
+      </bpmn2:dataOutputAssociation>
+      <pleak:sqlScript>SELECT slot.port_id as port_id, 
+       slot.berth_id as berth_id, 
+       row_number() OVER (PARTITION BY port_id, berth_id) AS row_id, 
+       slot.slotstart as slotstart, 
+       slot.slotend as slotend
+INTO slot1
+FROM slot
+ORDER BY port_id, berth_id, slotstart;
+
+SELECT COALESCE(slot1.port_id, slot2.port_id) AS port_id,
+  COALESCE(slot1.berth_id, slot2.berth_id) AS berth_id,
+  row_number() OVER (PARTITION BY port_id, berth_id) AS slot_id,
+  COALESCE(slot1.slotend, slot2.slotstart) AS gap,
+  COALESCE(slot1.slotend, 0) AS slotstart,
+  COALESCE(slot2.slotstart, 30) AS slotend
+into available_slots
+FROM slot1
+FULL JOIN slot1 AS slot2 ON
+  slot1.port_id = slot2.port_id AND
+  slot1.berth_id = slot2.berth_id AND
+  slot1.row_id + 1 = slot2.row_id
+WHERE COALESCE(slot1.slotend, 0) &lt; COALESCE(slot2.slotstart, 30)
+ORDER BY port_id, berth_id, gap;
+
+
+SELECT port_1.port_id as port_id, 
+  availslot.berth_id as berth_id, 
+  availslot.slot_id as slot_id,
+  GREATEST(rport.arrival, availslot.slotstart) AS offloadstart
+INTO slot_assignment_1
+FROM reachable_ports_1 AS rport, feasible_ports_1 AS fport, port_1, 
+available_slots AS availslot, berth, ship_information_1
+WHERE port_1.port_id = fport.port_id
+AND port_1.port_id = rport.port_id
+AND port_1.port_id = berth.port_id 
+AND availslot.port_id = berth.port_id
+AND availslot.berth_id = berth.berth_id
+AND berth.berthlength &gt;= ship_information_1.length
+AND rport.arrival &lt;= deadline AND availslot.slotstart &lt;= deadline
+AND rport.arrival + port_1.offloadtime &lt;= availslot.slotend
+AND availslot.slotstart + port_1.offloadtime &lt;= availslot.slotend
+ORDER BY offloadstart, port_id, berth_id;</pleak:sqlScript>
+    </bpmn2:task>
+    <bpmn2:dataObjectReference id="DataObjectReference_1hlif92" name="Berths" dataObjectRef="DataObject_07i1k20">
+      <pleak:sqlScript>CREATE TABLE berth (
+  port_id bigint,
+  berth_id bigint,
+  berthlength bigint,
+  PRIMARY KEY (port_id, berth_id)
+);</pleak:sqlScript>
+    </bpmn2:dataObjectReference>
+    <bpmn2:dataObject id="DataObject_07i1k20" isCollection="true" />
+    <bpmn2:dataObjectReference id="DataObjectReference_026il2y" name="Slots" dataObjectRef="DataObject_12on5pe">
+      <pleak:sqlScript>CREATE TABLE slot (
+  port_id bigint,
+  berth_id bigint,
+  slot_id bigint,
+  ship_id bigint REFERENCES ship NOT NULL,
+  slotstart bigint,
+  slotend bigint,
+  PRIMARY KEY (port_id, berth_id, slot_id),
+  FOREIGN KEY (port_id, berth_id) REFERENCES berth (port_id, berth_id)
+);</pleak:sqlScript>
+    </bpmn2:dataObjectReference>
+    <bpmn2:dataObject id="DataObject_12on5pe" isCollection="true" />
+    <bpmn2:dataObjectReference id="DataObjectReference_1jzddia" name="Ship information 1" dataObjectRef="DataObject_0hy9pw8" />
+    <bpmn2:dataObject id="DataObject_0hy9pw8" isCollection="true" />
+    <bpmn2:dataObjectReference id="DataObjectReference_0cexmhj" name="Slot assignment 1" dataObjectRef="DataObject_1x8o05s">
+      <pleak:sqlScript></pleak:sqlScript>
+    </bpmn2:dataObjectReference>
+    <bpmn2:dataObject id="DataObject_1x8o05s" isCollection="true" />
+  </bpmn2:process>
+  <bpmn2:process id="Process_0t44xfp">
+    <bpmn2:sequenceFlow id="SequenceFlow_1927wxh" sourceRef="Task_1uaab48" targetRef="EndEvent_0hsasgf" />
+    <bpmn2:sequenceFlow id="SequenceFlow_0mrfnf7" sourceRef="Task_06ykptp" targetRef="Task_1uaab48" />
+    <bpmn2:sequenceFlow id="SequenceFlow_10quicz" sourceRef="Task_17b0eq4" targetRef="Task_06ykptp" />
+    <bpmn2:sequenceFlow id="SequenceFlow_1sf9nme" sourceRef="StartEvent_1nz8veb" targetRef="Task_0yp6pk3" />
+    <bpmn2:sequenceFlow id="SequenceFlow_0vmggpr" sourceRef="Task_0yp6pk3" targetRef="Task_0z1iwot" />
+    <bpmn2:sequenceFlow id="SequenceFlow_1n2sq7j" sourceRef="Task_0z1iwot" targetRef="Task_17b0eq4" />
+    <bpmn2:endEvent id="EndEvent_0hsasgf">
+      <bpmn2:incoming>SequenceFlow_1927wxh</bpmn2:incoming>
+    </bpmn2:endEvent>
+    <bpmn2:sendTask id="Task_1uaab48" name="Send ship information">
+      <bpmn2:incoming>SequenceFlow_0mrfnf7</bpmn2:incoming>
+      <bpmn2:outgoing>SequenceFlow_1927wxh</bpmn2:outgoing>
+      <bpmn2:property id="Property_0n32yml" name="__targetRef_placeholder" />
+      <bpmn2:dataInputAssociation id="DataInputAssociation_0d27c6m">
+        <bpmn2:sourceRef>DataObjectReference_09rx407</bpmn2:sourceRef>
+        <bpmn2:targetRef>Property_0n32yml</bpmn2:targetRef>
+      </bpmn2:dataInputAssociation>
+    </bpmn2:sendTask>
+    <bpmn2:task id="Task_06ykptp" name="Select ship">
+      <bpmn2:incoming>SequenceFlow_10quicz</bpmn2:incoming>
+      <bpmn2:outgoing>SequenceFlow_0mrfnf7</bpmn2:outgoing>
+      <bpmn2:property id="Property_19gxun6" name="__targetRef_placeholder" />
+      <bpmn2:dataInputAssociation id="DataInputAssociation_0ukj08m">
+        <bpmn2:sourceRef>DataObjectReference_0forviw</bpmn2:sourceRef>
+        <bpmn2:targetRef>Property_19gxun6</bpmn2:targetRef>
+      </bpmn2:dataInputAssociation>
+      <bpmn2:dataOutputAssociation id="DataOutputAssociation_187vo0i">
+        <bpmn2:targetRef>DataObjectReference_09rx407</bpmn2:targetRef>
+      </bpmn2:dataOutputAssociation>
+      <pleak:sqlScript>create or replace function select_ships()
+  returns TABLE (port_id BIGINT, ship_id bigserial, length BIGINT) as 
+  $$
+  select port_2.port_id as port_id, ship_2.length as length, ship_2.ship_id as ship_id, 
+      earliest_arrival(ship_2.longitude, ship_2.latitude,
+                       port_2.longitude, port_2.latitude, ship_2.maxspeed) as arrival
+  from port_2, ship_2, feasible_ports_2 as fp2
+  where port_2.port_id = fp2.port_id
+  $$
+  language SQL;
+
+
+  SELECT ships.port_id as port_id, 
+  ships.ship_id as ship_id, 
+  ships.length as length 
+  INTO ship_information_2 
+  FROM parameters as p cross join lateral select_ships(p.deadline) as ships;</pleak:sqlScript>
+    </bpmn2:task>
+    <bpmn2:dataObjectReference id="DataObjectReference_1oqoh6f" name="Ships 2" dataObjectRef="DataObject_1jans27">
+      <pleak:sqlScript>CREATE TABLE ship_2 (
+  ship_id bigserial PRIMARY KEY,
+  name text NOT NULL,
+  cargo bigint,
+  latitude DOUBLE PRECISION,
+  longitude DOUBLE PRECISION,
+  length bigint,
+  draft bigint,
+  maxspeed bigint
+);</pleak:sqlScript>
+    </bpmn2:dataObjectReference>
+    <bpmn2:dataObject id="DataObject_1jans27" isCollection="true" />
+    <bpmn2:task id="Task_0yp6pk3" name="Compute reachable ports">
+      <bpmn2:incoming>SequenceFlow_1sf9nme</bpmn2:incoming>
+      <bpmn2:outgoing>SequenceFlow_0vmggpr</bpmn2:outgoing>
+      <bpmn2:property id="Property_1odzoen" name="__targetRef_placeholder" />
+      <bpmn2:dataInputAssociation id="DataInputAssociation_1qvkyio">
+        <bpmn2:sourceRef>DataObjectReference_1bu3p0c</bpmn2:sourceRef>
+        <bpmn2:targetRef>Property_1odzoen</bpmn2:targetRef>
+      </bpmn2:dataInputAssociation>
+      <bpmn2:dataInputAssociation id="DataInputAssociation_07kt3ep">
+        <bpmn2:sourceRef>DataObjectReference_1oqoh6f</bpmn2:sourceRef>
+        <bpmn2:targetRef>Property_1odzoen</bpmn2:targetRef>
+      </bpmn2:dataInputAssociation>
+      <bpmn2:dataInputAssociation id="DataInputAssociation_0k1ti1b">
+        <bpmn2:sourceRef>DataObjectReference_01xy855</bpmn2:sourceRef>
+        <bpmn2:targetRef>Property_1odzoen</bpmn2:targetRef>
+      </bpmn2:dataInputAssociation>
+      <bpmn2:dataOutputAssociation id="DataOutputAssociation_1dtphxz">
+        <bpmn2:targetRef>DataObjectReference_1wvlcrq</bpmn2:targetRef>
+      </bpmn2:dataOutputAssociation>
+      <bpmn2:dataOutputAssociation id="DataOutputAssociation_0vkz985">
+        <bpmn2:targetRef>DataObjectReference_0s5x3lf</bpmn2:targetRef>
+      </bpmn2:dataOutputAssociation>
+      <pleak:sqlScript>create or replace function earliest_arrival(
+  ship_lat DOUBLE PRECISION,
+  ship_long DOUBLE PRECISION,
+  port_lat DOUBLE PRECISION,
+  port_long DOUBLE PRECISION,
+  max_speed BIGINT)
+  returns BIGINT as
+$$
+  select ceil((POINT(ship_lat, ship_long) &lt;@&gt; POINT(port_lat, port_long)) / max_speed)::BIGINT
+$$
+language SQL IMMUTABLE returns NULL on NULL INPUT;
+
+create or replace function compute_reachable_ports(deadline BIGINT, shipname TEXT)
+  returns TABLE (port_id BIGINT, arrival BIGINT) as 
+  $$
+  select port_2.port_id as port_id, ship_2.cargo as cargo, ship_2.draft as draft, 
+      earliest_arrival(ship_2.longitude, ship_2.latitude,
+                       port_2.longitude, port_2.latitude, ship_2.maxspeed) as arrival
+  from port_2, ship_2
+  where earliest_arrival(ship_2.longitude, ship_2.latitude,
+      port_2.longitude, port_2.latitude, ship_2.maxspeed) &lt;= deadline; 
+  $$
+  language SQL;
+
+SELECT rports.port_id as port_id, 
+  rports.cargo as cargo, 
+  rports.draft as draft 
+  INTO ship_requirements_2 
+  FROM parameters as p cross join lateral compute_reachable_ports(p.deadline, p.shipname) as rports;
+  
+SELECT rports.port_id as port_id, 
+  rports.arrival as arrival 
+  INTO reachable_ports_2 
+  FROM parameters as p cross join lateral compute_reachable_ports(p.deadline, p.shipname) as rports;</pleak:sqlScript>
+    </bpmn2:task>
+    <bpmn2:startEvent id="StartEvent_1nz8veb" name="Request received">
+      <bpmn2:outgoing>SequenceFlow_1sf9nme</bpmn2:outgoing>
+      <bpmn2:dataOutputAssociation id="DataOutputAssociation_0rywjzm">
+        <bpmn2:targetRef>DataObjectReference_1bu3p0c</bpmn2:targetRef>
+      </bpmn2:dataOutputAssociation>
+      <bpmn2:dataOutputAssociation id="DataOutputAssociation_1v5bmey">
+        <bpmn2:targetRef>DataObjectReference_01xy855</bpmn2:targetRef>
+      </bpmn2:dataOutputAssociation>
+      <bpmn2:messageEventDefinition />
+      <pleak:sqlScript>SELECT p1.port_id as port_id,   
+  p1.latitude as latitude, 
+  p1.longitude as longitude
+INTO port_2 
+FROM port_1 as p1;</pleak:sqlScript>
+    </bpmn2:startEvent>
+    <bpmn2:dataObjectReference id="DataObjectReference_01xy855" name="Ports 2" dataObjectRef="DataObject_0n63ys4">
+      <pleak:sqlScript></pleak:sqlScript>
+    </bpmn2:dataObjectReference>
+    <bpmn2:dataObject id="DataObject_0n63ys4" isCollection="true" />
+    <bpmn2:dataObjectReference id="DataObjectReference_1bu3p0c" name="parameters" dataObjectRef="DataObject_0boxai6">
+      <pleak:sqlScript></pleak:sqlScript>
+    </bpmn2:dataObjectReference>
+    <bpmn2:dataObject id="DataObject_0boxai6" />
+    <bpmn2:dataObjectReference id="DataObjectReference_1wvlcrq" name="Ship requirements 2" dataObjectRef="DataObject_1gfni25">
+      <pleak:sqlScript></pleak:sqlScript>
+    </bpmn2:dataObjectReference>
+    <bpmn2:dataObject id="DataObject_1gfni25" isCollection="true" />
+    <bpmn2:dataObjectReference id="DataObjectReference_0s5x3lf" name="Reachable ports 2" dataObjectRef="DataObject_110fql8">
+      <pleak:sqlScript></pleak:sqlScript>
+    </bpmn2:dataObjectReference>
+    <bpmn2:dataObject id="DataObject_110fql8" isCollection="true" />
+    <bpmn2:sendTask id="Task_0z1iwot" name="Send list of reachable ports and ship requirements">
+      <bpmn2:incoming>SequenceFlow_0vmggpr</bpmn2:incoming>
+      <bpmn2:outgoing>SequenceFlow_1n2sq7j</bpmn2:outgoing>
+      <bpmn2:property id="Property_0f9dev6" name="__targetRef_placeholder" />
+      <bpmn2:dataInputAssociation id="DataInputAssociation_0zhzwzo">
+        <bpmn2:sourceRef>DataObjectReference_1wvlcrq</bpmn2:sourceRef>
+        <bpmn2:targetRef>Property_0f9dev6</bpmn2:targetRef>
+      </bpmn2:dataInputAssociation>
+      <bpmn2:dataInputAssociation id="DataInputAssociation_17ngvn0">
+        <bpmn2:sourceRef>DataObjectReference_0s5x3lf</bpmn2:sourceRef>
+        <bpmn2:targetRef>Property_0f9dev6</bpmn2:targetRef>
+      </bpmn2:dataInputAssociation>
+    </bpmn2:sendTask>
+    <bpmn2:receiveTask id="Task_17b0eq4" name="Receive list of feasible ports">
+      <bpmn2:incoming>SequenceFlow_1n2sq7j</bpmn2:incoming>
+      <bpmn2:outgoing>SequenceFlow_10quicz</bpmn2:outgoing>
+      <bpmn2:dataOutputAssociation id="DataOutputAssociation_1okpvm2">
+        <bpmn2:targetRef>DataObjectReference_0forviw</bpmn2:targetRef>
+      </bpmn2:dataOutputAssociation>
+      <pleak:sqlScript>SELECT fp1.port_id as port_id,
+fp1.harbordepth as harbordepth, 
+fp1.offloadcapacity as offloadcapacity 
+INTO feasible_ports_2 
+FROM feasible_ports_1 as fp1;</pleak:sqlScript>
+    </bpmn2:receiveTask>
+    <bpmn2:dataObjectReference id="DataObjectReference_0forviw" name="Feasible ports 2" dataObjectRef="DataObject_17an3om" />
+    <bpmn2:dataObject id="DataObject_17an3om" isCollection="true" />
+    <bpmn2:dataObjectReference id="DataObjectReference_09rx407" name="Ship information 2" dataObjectRef="DataObject_0dkfxcp" />
+    <bpmn2:dataObject id="DataObject_0dkfxcp" isCollection="true" />
+  </bpmn2:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_0qqzggy">
+      <bpmndi:BPMNShape id="Participant_19d4icu_di" bpmnElement="Participant_19d4icu">
+        <dc:Bounds x="198" y="100" width="1410" height="288" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Participant_03okyyb_di" bpmnElement="Participant_03okyyb">
+        <dc:Bounds x="198" y="406" width="1412" height="316" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="StartEvent_17hf4zi_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="259" y="200" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="242" y="236" width="71" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_0wuidku_di" bpmnElement="SequenceFlow_0wuidku">
+        <di:waypoint x="295" y="218" />
+        <di:waypoint x="350" y="218" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="340.5" y="196.5" width="0" height="13" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="DataObjectReference_19fjx6x_di" bpmnElement="DataObjectReference_19fjx6x">
+        <dc:Bounds x="295" y="116" width="36" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="294" y="169" width="38" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="DataInputAssociation_1baw5d8_di" bpmnElement="DataInputAssociation_1baw5d8">
+        <di:waypoint x="331" y="155" />
+        <di:waypoint x="361" y="178" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="DataObjectReference_0d4rahq_di" bpmnElement="DataObjectReference_0d4rahq">
+        <dc:Bounds x="295" y="278" width="36" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="284" y="331" width="59" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="DataInputAssociation_1j61e6a_di" bpmnElement="DataInputAssociation_1j61e6a">
+        <di:waypoint x="331" y="287" />
+        <di:waypoint x="363" y="258" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="SendTask_166xept_di" bpmnElement="Task_1cqv0zi">
+        <dc:Bounds x="350" y="178" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="DataOutputAssociation_1w814p8_di" bpmnElement="DataOutputAssociation_1w814p8">
+        <di:waypoint x="284" y="235" />
+        <di:waypoint x="301" y="278" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="StartEvent_0a9t8hg_di" bpmnElement="StartEvent_1nz8veb">
+        <dc:Bounds x="266" y="539" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="262" y="578" width="44" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="MessageFlow_1vojdz8_di" bpmnElement="MessageFlow_1vojdz8">
+        <di:waypoint x="400" y="258" />
+        <di:waypoint x="400" y="390" />
+        <di:waypoint x="280" y="390" />
+        <di:waypoint x="280" y="540" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="358" y="357.5" width="0" height="13" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_1qdk7qz_di" bpmnElement="SequenceFlow_1qdk7qz">
+        <di:waypoint x="450" y="218" />
+        <di:waypoint x="559" y="218" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="523" y="196.5" width="0" height="13" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="ReceiveTask_1oaagex_di" bpmnElement="Task_0n19n3h">
+        <dc:Bounds x="559" y="178" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_0yp6pk3_di" bpmnElement="Task_0yp6pk3">
+        <dc:Bounds x="359" y="517" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_1sf9nme_di" bpmnElement="SequenceFlow_1sf9nme">
+        <di:waypoint x="302" y="557" />
+        <di:waypoint x="359" y="557" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="330.5" y="522.5" width="0" height="13" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_0vmggpr_di" bpmnElement="SequenceFlow_0vmggpr">
+        <di:waypoint x="459" y="557" />
+        <di:waypoint x="559" y="557" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="528.5" y="522.5" width="0" height="13" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="SendTask_1nkbmws_di" bpmnElement="Task_0z1iwot">
+        <dc:Bounds x="559" y="517" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_0hsasgf_di" bpmnElement="EndEvent_0hsasgf">
+        <dc:Bounds x="1295" y="539" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="860" y="565" width="0" height="13" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_1n2sq7j_di" bpmnElement="SequenceFlow_1n2sq7j">
+        <di:waypoint x="659" y="557" />
+        <di:waypoint x="778" y="557" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="770" y="522.5" width="0" height="13" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="EndEvent_15f4rr6_di" bpmnElement="EndEvent_15f4rr6">
+        <dc:Bounds x="1531" y="200" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="847" y="239" width="0" height="13" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_0q1pxgf_di" bpmnElement="SequenceFlow_0q1pxgf">
+        <di:waypoint x="659" y="218" />
+        <di:waypoint x="771" y="218" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="744.5" y="196.5" width="0" height="13" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="DataObjectReference_1bu3p0c_di" bpmnElement="DataObjectReference_1bu3p0c">
+        <dc:Bounds x="311" y="422" width="36" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="300" y="475" width="59" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="DataOutputAssociation_0rywjzm_di" bpmnElement="DataOutputAssociation_0rywjzm">
+        <di:waypoint x="290" y="540" />
+        <di:waypoint x="314" y="472" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DataInputAssociation_1qvkyio_di" bpmnElement="DataInputAssociation_1qvkyio">
+        <di:waypoint x="347" y="468" />
+        <di:waypoint x="389" y="517" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="DataObjectReference_1oqoh6f_di" bpmnElement="DataObjectReference_1oqoh6f">
+        <dc:Bounds x="311" y="618" width="36" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="310" y="671" width="39" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="DataInputAssociation_07kt3ep_di" bpmnElement="DataInputAssociation_07kt3ep">
+        <di:waypoint x="347" y="620" />
+        <di:waypoint x="366" y="596" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="DataObjectReference_1xtsr01_di" bpmnElement="DataObjectReference_1xtsr01">
+        <dc:Bounds x="695" y="116" width="36" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="672" y="169" width="85" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DataObjectReference_00l4uvv_di" bpmnElement="DataObjectReference_00l4uvv">
+        <dc:Bounds x="705" y="278" width="36" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="685" y="331" width="78" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="DataOutputAssociation_0buzut2_di" bpmnElement="DataOutputAssociation_0buzut2">
+        <di:waypoint x="652" y="179" />
+        <di:waypoint x="695" y="142" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DataOutputAssociation_14lj43s_di" bpmnElement="DataOutputAssociation_14lj43s">
+        <di:waypoint x="658" y="252" />
+        <di:waypoint x="705" y="285" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MessageFlow_058ex6z_di" bpmnElement="MessageFlow_058ex6z">
+        <di:waypoint x="609" y="517" />
+        <di:waypoint x="609" y="258" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="632" y="359.5" width="0" height="13" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="DataObjectReference_01xy855_di" bpmnElement="DataObjectReference_01xy855">
+        <dc:Bounds x="391" y="440" width="36" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="391" y="417" width="38" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="DataOutputAssociation_1v5bmey_di" bpmnElement="DataOutputAssociation_1v5bmey">
+        <di:waypoint x="298" y="546" />
+        <di:waypoint x="391" y="478" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DataInputAssociation_0k1ti1b_di" bpmnElement="DataInputAssociation_0k1ti1b">
+        <di:waypoint x="409" y="490" />
+        <di:waypoint x="409" y="517" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="DataObjectReference_1wvlcrq_di" bpmnElement="DataObjectReference_1wvlcrq">
+        <dc:Bounds x="493" y="440" width="36" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="473" y="493" width="78" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="DataOutputAssociation_1dtphxz_di" bpmnElement="DataOutputAssociation_1dtphxz">
+        <di:waypoint x="452" y="518" />
+        <di:waypoint x="493" y="481" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DataInputAssociation_0zhzwzo_di" bpmnElement="DataInputAssociation_0zhzwzo">
+        <di:waypoint x="529" y="484" />
+        <di:waypoint x="563" y="519" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="DataObjectReference_0s5x3lf_di" bpmnElement="DataObjectReference_0s5x3lf">
+        <dc:Bounds x="493" y="618" width="36" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="470" y="671" width="85" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="DataOutputAssociation_0vkz985_di" bpmnElement="DataOutputAssociation_0vkz985">
+        <di:waypoint x="454" y="596" />
+        <di:waypoint x="493" y="629" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DataInputAssociation_17ngvn0_di" bpmnElement="DataInputAssociation_17ngvn0">
+        <di:waypoint x="529" y="629" />
+        <di:waypoint x="572" y="597" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_1b78r1t_di" bpmnElement="SequenceFlow_1b78r1t">
+        <di:waypoint x="871" y="218" />
+        <di:waypoint x="981" y="218" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="DataObjectReference_0ofqhjv_di" bpmnElement="DataObjectReference_0ofqhjv">
+        <dc:Bounds x="905" y="116" width="36" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="882" y="173" width="84" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="DataOutputAssociation_1x6xlzz_di" bpmnElement="DataOutputAssociation_1x6xlzz">
+        <di:waypoint x="868" y="182" />
+        <di:waypoint x="905" y="154" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DataInputAssociation_1et8n74_di" bpmnElement="DataInputAssociation_1et8n74">
+        <di:waypoint x="731" y="153" />
+        <di:waypoint x="772" y="183" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DataInputAssociation_05z2at7_di" bpmnElement="DataInputAssociation_05z2at7">
+        <di:waypoint x="741" y="287" />
+        <di:waypoint x="776" y="257" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="Task_0pxpj43_di" bpmnElement="Task_10vdp3f">
+        <dc:Bounds x="771" y="178" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_0bxw88s_di" bpmnElement="SequenceFlow_0bxw88s">
+        <di:waypoint x="1081" y="218" />
+        <di:waypoint x="1133" y="218" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DataInputAssociation_07n8kk5_di" bpmnElement="DataInputAssociation_07n8kk5">
+        <di:waypoint x="941" y="154" />
+        <di:waypoint x="982" y="183" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="SendTask_1eihncr_di" bpmnElement="Task_04l6yvj">
+        <dc:Bounds x="981" y="178" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ReceiveTask_0daz9ib_di" bpmnElement="Task_17b0eq4">
+        <dc:Bounds x="778" y="517" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="MessageFlow_0naywlm_di" bpmnElement="MessageFlow_0naywlm">
+        <di:waypoint x="1031" y="258" />
+        <di:waypoint x="1031" y="394" />
+        <di:waypoint x="822" y="394" />
+        <di:waypoint x="822" y="517" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="Task_0jxwusb_di" bpmnElement="Task_0jxwusb">
+        <dc:Bounds x="1352" y="178" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DataObjectReference_0cexmhj_di" bpmnElement="DataObjectReference_0cexmhj">
+        <dc:Bounds x="1497" y="116" width="36" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1474" y="173" width="83" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="DataOutputAssociation_1974r4q_di" bpmnElement="DataOutputAssociation_1974r4q">
+        <di:waypoint x="1465" y="218" />
+        <di:waypoint x="1499" y="166" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="DataObjectReference_026il2y_di" bpmnElement="DataObjectReference_026il2y">
+        <dc:Bounds x="1344" y="297" width="36" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1349" y="354" width="26" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DataObjectReference_1hlif92_di" bpmnElement="DataObjectReference_1hlif92">
+        <dc:Bounds x="1441" y="297" width="36" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1442" y="349" width="34" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="DataInputAssociation_1nag4de_di" bpmnElement="DataInputAssociation_1nag4de">
+        <di:waypoint x="1446" y="297" />
+        <di:waypoint x="1424" y="258" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DataInputAssociation_1kk6p9s_di" bpmnElement="DataInputAssociation_1kk6p9s">
+        <di:waypoint x="1372" y="297" />
+        <di:waypoint x="1387" y="258" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="Task_06ykptp_di" bpmnElement="Task_06ykptp">
+        <dc:Bounds x="941" y="517" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_10quicz_di" bpmnElement="SequenceFlow_10quicz">
+        <di:waypoint x="878" y="557" />
+        <di:waypoint x="941" y="557" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_0mrfnf7_di" bpmnElement="SequenceFlow_0mrfnf7">
+        <di:waypoint x="1041" y="557" />
+        <di:waypoint x="1133" y="557" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="SendTask_178jxj3_di" bpmnElement="Task_1uaab48">
+        <dc:Bounds x="1133" y="517" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_0kbcc52_di" bpmnElement="SequenceFlow_0kbcc52">
+        <di:waypoint x="1233" y="218" />
+        <di:waypoint x="1352" y="218" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="ReceiveTask_1oahouc_di" bpmnElement="Task_1ajk1j1">
+        <dc:Bounds x="1133" y="178" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="MessageFlow_1epfgtg_di" bpmnElement="MessageFlow_1epfgtg">
+        <di:waypoint x="1183" y="517" />
+        <di:waypoint x="1183" y="258" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_06e5sff_di" bpmnElement="SequenceFlow_06e5sff">
+        <di:waypoint x="1452" y="218" />
+        <di:waypoint x="1531" y="218" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_1927wxh_di" bpmnElement="SequenceFlow_1927wxh">
+        <di:waypoint x="1233" y="557" />
+        <di:waypoint x="1295" y="557" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="DataObjectReference_0forviw_di" bpmnElement="DataObjectReference_0forviw">
+        <dc:Bounds x="883" y="618" width="36" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="859" y="675" width="84" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="DataOutputAssociation_1okpvm2_di" bpmnElement="DataOutputAssociation_1okpvm2">
+        <di:waypoint x="862" y="597" />
+        <di:waypoint x="883" y="622" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DataInputAssociation_0ukj08m_di" bpmnElement="DataInputAssociation_0ukj08m">
+        <di:waypoint x="919" y="626" />
+        <di:waypoint x="950" y="597" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="DataObjectReference_09rx407_di" bpmnElement="DataObjectReference_09rx407">
+        <dc:Bounds x="1066" y="618" width="36" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1042" y="675" width="84" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="DataOutputAssociation_187vo0i_di" bpmnElement="DataOutputAssociation_187vo0i">
+        <di:waypoint x="1034" y="596" />
+        <di:waypoint x="1066" y="626" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DataInputAssociation_0d27c6m_di" bpmnElement="DataInputAssociation_0d27c6m">
+        <di:waypoint x="1102" y="627" />
+        <di:waypoint x="1138" y="596" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="DataObjectReference_1jzddia_di" bpmnElement="DataObjectReference_1jzddia">
+        <dc:Bounds x="1276" y="116" width="36" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1252" y="173" width="84" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="DataOutputAssociation_07uzt1g_di" bpmnElement="DataOutputAssociation_07uzt1g">
+        <di:waypoint x="1232" y="184" />
+        <di:waypoint x="1276" y="153" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DataInputAssociation_0x06422_di" bpmnElement="DataInputAssociation_0x06422">
+        <di:waypoint x="1312" y="154" />
+        <di:waypoint x="1353" y="183" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn2:definitions>
