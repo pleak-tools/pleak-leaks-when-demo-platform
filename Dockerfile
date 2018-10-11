@@ -160,8 +160,10 @@ RUN sudo update-java-alternatives -s java-1.8.0-openjdk-amd64
 
 COPY scripts /usr/pleak/scripts
 COPY examples /usr/pleak/examples
+COPY examples/10 /usr/pleak/pleak-backend/src/main/webapp/files
 COPY examples/11 /usr/pleak/pleak-backend/src/main/webapp/files
 COPY examples/32 /usr/pleak/pleak-backend/src/main/webapp/files
+COPY examples/34 /usr/pleak/pleak-backend/src/main/webapp/files
 RUN chmod 777 /usr/pleak/scripts/*.sh
 
 CMD sh /usr/pleak/scripts/db-setup.sh; sh /usr/pleak/scripts/launch.sh
